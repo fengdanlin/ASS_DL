@@ -1,0 +1,88 @@
+#include <NewPing.h>
+
+#define TRIGGER_PIN  7 // ONLY WITH THE HCSR04 SENSOR.
+#define ECHO_PIN  8    // ONLY WITH THE HCSR04 SENSOR.
+//#define PING_PIN  7  // ONLY WITH THE GROVE SENSOR.
+
+#define MAX_DISTANCE 600 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // ONLY WITH THE HCSR04 SENSOR.
+//NewPing sonar(PING_PIN, PING_PIN, MAX_DISTANCE); // ONLY WITH THE GROVE SENSOR.
+
+unsigned int uS;
+const int sensorPin = 0;
+const int PoPin = 1;
+const int ledPin = 9;
+const int ledPin2 = 6;
+
+int val;
+
+int lightLevel, ledState, PoLevel, high = 0, low = 1023;
+
+void setup() {
+  Serial.begin(115200); // Open serial monitor at 115200 baud to see ping results.
+}
+
+void loop() {
+  delay(50);                      // Wait 50ms between pings (about 20 pings/sec). 29ms should be the shortest delay between pings.
+  Ultrosonic();
+  Sensor();
+  SerialRead();
+}
+////////serialRead
+
+void SerialRead() {
+  if (Serial.available()) {
+    val = Serial.read();
+  }
+  Sensor();
+  if (val == 1) {
+    digitalWrite(ledPin, LOW);
+    analogWrite(ledPin2, ledState);
+  }else if (val == 2){
+    analogWrite(ledPin2, LOW);
+     analogWrite(ledPin, ledState);
+  }else if (val == 3){
+    analogWrite(ledPin, ledState);
+    analogWrite(ledPin2, ledState);
+  }else{
+    analogWrite(ledPin, ledState);
+    analogWrite(ledPin2, ledState);
+  }
+}
+
+/////ultrosonic
+void Ultrosonic(){
+   uS = sonar.ping(); // Send ping, get ping time in microseconds (uS).
+
+  if (uS > 0) {
+    Serial.print(uS / US_ROUNDTRIP_CM); // Convert ping time to distance and print result (0 = outside set distance range, no ping echo)
+    Serial.print("_");
+    Serial.print( analogRead(sensorPin));
+//    Serial.println(" cm");
+  }
+}
+
+////lightSensor
+void Sensor() {
+  lightLevel = analogRead(sensorPin);
+ 
+  PoLevel = analogRead(PoPin);
+
+  manualTune();
+  ledState = lightLevel;
+  //analogWrite(ledPin, ledState);
+  //analogWrite(ledPin2, ledState);
+}
+
+void manualTune()
+{
+  if (PoLevel == 0)
+  {
+    lightLevel = map(lightLevel, 0, 1023, 255, 0);
+    lightLevel = constrain(lightLevel, 0, 255);
+  } else {
+    lightLevel = map(lightLevel, 0, 1023, 255, 0) + map(PoLevel, 0, 1023, -50, 50);
+    lightLevel = constrain(lightLevel, 0, 255);
+  }
+}
