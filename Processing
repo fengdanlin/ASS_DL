@@ -1,0 +1,564 @@
+import processing.serial.*;
+
+// Serial port variables
+Serial serialPort;  // Create object from Serial class
+int distance;      // Data received from the serial port
+String distanceString;
+String[] list;
+// Face drawing variables
+int valDis, valLight;
+
+boolean p1=true, p2=false, p3=false;
+boolean ButtonAStatue=false;
+
+long timeLastChange;
+
+////////The value for line draw
+static final int NUM_LINES = 50;
+float t;
+/////////
+
+int xspacing = 5;   // How far apart should each horizontal location be spaced
+int w;              // Width of entire wave
+
+float theta = 0.0;  // Start angle at 0
+float amplitude = 75.0;  // Height of wave
+float period = 500.0;  // How many pixels before the wave repeats
+float dx;  // Value for incrementing X, a function of period and xspacing
+float[] yvalues;  // Using an array to store height values for the wave
+//////
+
+float TimeCounter;
+
+/////
+
+float angle1 ; 
+float angle2 ;
+float angle3 ;
+float valLight2;
+////////////////
+
+void setup() {
+  frameRate(60);
+  //size(200, 200);
+  size(840, 640);
+  surface.setResizable(true);
+
+  strokeWeight(4);
+  w = width+16;
+  dx = (TWO_PI / period) * xspacing;
+  yvalues = new float[w/xspacing];
+  // Open serial port
+  String portName = "/dev/tty.usbserial-DN01DGU5"; //Serial.list()[0];
+  serialPort = new Serial(this, portName, 115200);
+}
+
+void draw() {
+  background(0);
+  readSerialPort();
+  Changesize();
+  drawButtonA();
+  TimeCounter();
+  drawBg();
+}
+
+void Changesize() {
+  if (mouseX<30&& mouseX>10 &&mouseY>10& mouseY<30&& mousePressed &&ButtonAStatue == false) {
+    surface.setSize(420, 640);
+
+    delay(200);
+    ButtonAStatue = true;
+  } else if (mouseX<30&& mouseX>10 &&mouseY>10& mouseY<30&& mousePressed &&ButtonAStatue == true) {
+    surface.setSize(840, 640);
+    delay(200);
+    ButtonAStatue = false;
+  }
+
+  if (ButtonAStatue==false) {
+    biggerWin();
+  } else if (ButtonAStatue == true) {
+    SmallWin();
+  }
+}
+
+///////
+
+void drawButtonA() {
+  pushMatrix();
+  stroke(255);
+  strokeWeight(2);
+  noFill();
+  ellipse( 20, 20, 20, 20);
+  if (ButtonAStatue == false) {
+    line(20, 12, 20, 28);
+  }else if (ButtonAStatue == true){
+    line(12, 20, 28, 20);
+  }
+  popMatrix();
+}
+
+////////
+void biggerWin() {
+  dot();
+  DataLight();
+  showLight();
+  waveLine();
+  drawUI();
+  showDis();
+  DataDis();
+}
+
+void SmallWin() {
+  dot2();
+  waveLine();
+  showLight2();
+  DataLight2();
+  showDis2();
+  DataDis2();
+}
+
+/////reading data from arduino
+void readSerialPort() {
+  if (serialPort.available() > 0) { // If data is available
+    distanceString = serialPort.readString();
+    list = split(distanceString, "_");
+    if (list.length == 2) {
+      try {
+        valDis = Integer.parseInt(list[0]);
+        valLight = Integer.parseInt(list[1]);
+        //distance = Integer.parseInt(distanceString); // parse the string into integer
+      } 
+      catch (NumberFormatException e) {
+        println("### Error parsing string into integer: " + distanceString);
+        println("### B:Error parsing string into integer: " + list[0]);
+        println("### A:Error parsing string into integer: " + list[1]);
+      }
+    }
+    println("Distance: " + valDis);
+    println("Light: " + valLight);
+  }
+}
+/////showLightData
+
+void showLight() {
+  textSize(30);
+  fill(255);
+  textAlign(CENTER);
+  text(valLight, width/3-50, height/4+120);
+}
+
+void showDis() {
+  textSize(30);
+  fill(255);
+  textAlign(CENTER);
+  text(valDis, width*2/3+50, height/4+120);
+}
+////////////////
+
+void showLight2() {
+  textSize(30);
+  fill(255);
+  textAlign(CENTER);
+  text(valLight, width/2, height/4+90);
+}
+
+void showDis2() {
+  textSize(30);
+  fill(255);
+  textAlign(CENTER);
+  text(valDis, width/2, height/4+320);
+}
+///////datavisualization
+void DataDis() {
+
+  // Test distance and draw face
+  if (valDis<30) { // test distance in cm
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("You are too close to the table", width*2/3+50, height/4+150);
+  } else if ((valDis > 30) && (valDis < 100)) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("The distance is good", width*2/3+50, height/4+150);
+  } else if (valDis>100) {
+    //delay(100);
+    if (valDis<150) {
+      textSize(15);
+      fill(255);
+      textAlign(CENTER);
+      text("WelcomeBack", width*2/3+50, height/4+150);
+    } else if(valDis>=150){
+      textSize(15);
+      fill(255);
+      textAlign(CENTER);
+      text("Happy break", width*2/3+50, height/4+150);
+    }
+  }
+}
+////////
+
+
+void DataDis2() {
+
+  // Test distance and draw face
+  if (valDis<30) { // test distance in cm
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("You are too close to the table", width/2, height/4+350);
+  } else if ((valDis > 30) && (valDis < 100)) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("The distance is good", width/2, height/4+350);
+  } else if (valDis>100) {
+    if (valDis<150) {
+      textSize(15);
+      fill(255);
+      textAlign(CENTER);
+      text("WelcomeBack", width/2, height/4+350);
+    } else if(valDis>=150){
+      textSize(15);
+      fill(255);
+      textAlign(CENTER);
+      text("Happy break", width/2, height/4+350);
+    }
+  }
+}
+
+////////
+void DataLight() {
+
+  // Test distance and draw face
+  if (valLight<100) { // test distance in cm
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("Too dark", width/3-50, height/4+150);
+  } else if ((valLight >= 100) && (valLight < 600)) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("The light is good", width/3-50, height/4+150);
+  } else if (valLight > 600) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("Too bright", width/3-50, height/4+150);
+  }
+}
+/////////////
+void DataLight2() {
+
+  // Test distance and draw face
+  if (valLight<100) { // test distance in cm
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("Too dark", width/2, height/4);
+  } else if ((valLight >= 100) && (valLight < 600)) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("The light is good", width/2, height/4+150);
+  } else if (valLight > 600) {
+    textSize(15);
+    fill(255);
+    textAlign(CENTER);
+    text("Too bright", width/2, height/4+150);
+  }
+}
+
+///////TimeCounter////////
+
+void TimeCounter() {
+  if (valDis<100) {
+    for (int i=0; i<10000; i++) {
+      TimeCounter+= 0.0001;
+    }
+  } else {
+    TimeCounter = 0;
+  }
+  println(int(TimeCounter));
+}
+
+////////////////
+
+//////////Drawing UI///////////////
+
+////////draw bg
+
+void drawBg() {
+  // give a initial value to the offset
+  //float speed = 0.1;
+  //background(5);
+  pushMatrix();
+  translate(width/2, height/2);//set the centre point
+  strokeWeight(2);
+  // draw the new moon shape halo around the black hole
+  // drawLine2();
+  rotate(PI*1.60);
+  drawLine2();
+  popMatrix();
+}
+// new moon shape halo around the black hole
+void drawLine2() {
+  strokeWeight(2);
+  stroke(225, 255, 200, 30);
+  for (int i=0; i< 50; i++) {
+    rotate(PI/50);
+    line(-width, 700, width, 100);
+  }
+}
+
+//////////
+
+void dot2() {
+  background(0);
+  calcWave();
+  renderWave2();
+}
+void dot() {
+  background(0);
+  calcWave();
+  renderWave();
+}
+
+void calcWave() {
+  valLight2=map(valDis, 0, 1023, 0, 30);
+  // Increment theta (try different values for 'angular velocity' here
+  theta += 0.02;
+
+  // For every x value, calculate a y value with sine function
+  float x = theta;
+  for (int i = 0; i < 50; i++) {
+    yvalues[i] = sin(x)*amplitude;
+    x+=valLight2*dx;
+  }
+}
+
+void renderWave() {
+  noStroke();
+  fill(255, 255-TimeCounter/6, 255-TimeCounter/6);
+  // A simple way to draw the wave with an ellipse at each location
+  for (int x = 0; x < 50; x++) {
+    ellipse(x*xspacing+500+mouseX*0.06, height/2+yvalues[x]-160+mouseY*0.05, 3, 3);
+  }
+}
+void renderWave2() {
+  noStroke();
+  fill(255, 255-TimeCounter/6, 255-TimeCounter/6);
+  // A simple way to draw the wave with an ellipse at each location
+  for (int x = 0; x < 50; x++) {
+    ellipse(x*xspacing+100+mouseX*0.06, height/2+yvalues[x]+120+mouseY*0.05, 3, 3);
+  }
+}
+///////////
+
+
+
+/////////////////line wave/////
+void waveLine() {
+  float valLight1 =map(valLight, 0, 1023, 0, 25) ;
+  pushMatrix();
+  translate(190, 60);
+  strokeWeight(1);
+  //translate(width/2, height/2);
+  point(X1(t), Y1(t));
+  point(X2(t), Y2(t));
+  for (int i = 0; i<NUM_LINES; i++) {
+    stroke(valLight1*7, valLight1*8+1, valLight1*12);
+    line(X1(t + i), Y1(t + i), X2(t + i), Y2(t + i));
+  }
+  for (int j = 0; j<NUM_LINES; j++) {
+    stroke(valLight1*12-j, valLight1*7, valLight1*8);
+    line(X1(t + j), Y2(t + j), X2(t + j), Y1(t + j));
+  }
+  t+= 0.05/*more small, more slow*/;
+  popMatrix();
+}
+float X1(float t) {
+  float valLight1 =map(valLight, 0, 1023, 0, 25) ;
+  return cos(t/30)*70+sin(t/12)*valLight1*4+mouseX*0.05;
+}
+float Y1(float t) {
+  float valLight1 =map(valLight, 0, 1023, 0, 25) ;
+  return sin(t/10/*frequency*/)*valLight1*5+50/**/;
+}
+float X2(float t) {
+  float valLight1 =map(valLight, 0, 1023, 0, 25) ;
+  return cos(t/20)*70+sin(t/12)*2-mouseY*0.03;
+}
+float Y2(float t) {
+  float valLight1 =map(valLight, 0, 1023, 0, 25) ;
+  return sin(t/20/*frequency*/)*valLight1*6/**/+cos(t/15)+100;
+}
+//////this function is to draw UI
+
+void drawUI() {
+  pushMatrix();
+  textSize(15);
+  fill(255);
+  text("LIGHT MODE", width/2, 3*height/4-80);
+  popMatrix();
+  pushMatrix();
+  ////////////reading//////////////
+  if (mouseX<(width*2/8+width/8-20)&&mouseX>(width*2/8-width/8-20)&&mouseY<(3*height/4+width/8-20)&&mouseY>(3*height/4-width/8-20))
+  {
+    if (mousePressed) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*2/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("READING", width*2/8, 3*height/4+25);
+      popMatrix();
+      serialPort.write(1);
+      p1=true; 
+      p2=false; 
+      p3=false;
+    } else {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*2/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("READING", width*2/8, 3*height/4+25);
+      popMatrix();
+    }
+  } else {
+    /////
+    if (p1 == true && p2==false && p3 == false) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*2/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("READING", width*2/8, 3*height/4+25);
+      popMatrix();
+    } else {
+      /////
+      stroke(100);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*2/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("READING", width*2/8, 3*height/4+25);
+      popMatrix();
+    }
+  }
+  ////////////////////WRITING//////////////////////
+  if (mouseX<(width*4/8+width/8-20)&&mouseX>(width*4/8-width/8-20)&&mouseY<(3*height/4+width/8-20)&&mouseY>(3*height/4-width/8-20))
+  {
+    if (mousePressed) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*4/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("WRITING", width*4/8, 3*height/4+25);
+      popMatrix();
+      serialPort.write(2);
+      p1=false; 
+      p2=true; 
+      p3=false;
+    } else {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*4/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("WRITING", width*4/8, 3*height/4+25);
+      popMatrix();
+    }
+  } else {
+    if (p2== true && p1==false && p3 == false) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*4/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("WRITING", width*4/8, 3*height/4+25);
+      popMatrix();
+    } else {
+      stroke(200);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*4/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("WRITING", width*4/8, 3*height/4+25);
+      popMatrix();
+    }
+  }
+
+  ////////////////////detail work/////////////////////////
+  if (mouseX<(width*6/8+width/8-20)&&mouseX>(width*6/8-width/8-20)&&mouseY<(3*height/4+width/8-20)&&mouseY>(3*height/4-width/8-20))
+  {
+    if (mousePressed) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*6/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("DETAIL WORK", width*6/8, 3*height/4+25);
+      popMatrix();
+      serialPort.write(3);
+      p1=false; 
+      p2=false; 
+      p3=true;
+    } else {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*6/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("DETAIL WORK", width*6/8, 3*height/4+25);
+      popMatrix();
+    }
+  } else {
+    if (p3== true && p1==false && p2 == false) {
+      stroke(66, 175, 78);
+      strokeWeight(1);
+      fill(66, 175, 78);
+      ellipse( width*6/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("DETAIL WORK", width*6/8, 3*height/4+25);
+      popMatrix();
+    } else {
+      stroke(200);
+      strokeWeight(1);
+      fill(0);
+      ellipse( width*6/8, 3*height/4+20, width/5-40, width/5-40);
+      pushMatrix();
+      textSize(10);
+      fill(255);
+      text("DETAIL WORK", width*6/8, 3*height/4+25);
+      popMatrix();
+    }
+  }
+  popMatrix();
+}
